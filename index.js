@@ -9,12 +9,22 @@ import { google } from 'googleapis';
 import process from "process"
 
 const HEIGHT = 70;
-const WIDTH = 112
+const WIDTH = 49;
 
 const auth = await authorize()
 const calendar = google.calendar({version: 'v3', auth});
 
 const CALENDAR_ID = (await calendar.calendarList.list()).data.items.filter(a => a.summary == "teest")[0].id
+
+const keypress = async () => {
+  process.stdin.setRawMode(true);
+  process.stdin.resume();
+  return new Promise(resolve => process.stdin.once('data', () => {
+    process.stdin.setRawMode(false);
+    process.stdin.pause();
+    resolve();
+  }))
+};
 
 fs.readdir("./"+dir, async (_, files) => {
 
@@ -22,13 +32,14 @@ fs.readdir("./"+dir, async (_, files) => {
   const redo = []
   
   let total = 0;
-  for (let i=0; i<files.length; i++) {
+  for (let i=515; i<files.length; i++) {
     const matrixBeforResize = png2PixelMatrix(dir+'/'+files[i]);
     const matrixAfterResize = scalePixelMatrix(matrixBeforResize, HEIGHT, WIDTH);
-    const days = SeperateTo7Days(matrixAfterResize)
+    const days = SeperateTo7Days(matrixAfterResize, WIDTH, HEIGHT)
     const blocks = days.map(day => buildCalendarColumn(day))
 
     for (let column=0; column<7; column++) { 
+      total += blocks[column].length
       for (const block of blocks[column]) {
         while (die) {
           await new Promise(res => setTimeout(res, 10000))
@@ -40,19 +51,22 @@ fs.readdir("./"+dir, async (_, files) => {
 
           console.log("died\n");
           die = true
-          setTimeout(() => die = false, 60000)
+          // setTimeout(() => die = false, 60000)
+          console.log("Press any key to continue:\n");
+          keypress().then(() => {die = false})
         })
         log(column, i)
 
         await new Promise((res)=>setTimeout(res, 300))
+        // total++
       }
     }
-    total += blocks.length
+    // total += blocks.length
   }
   console.log(total)
   console.log("redoing :)")
-  for (let i=0; i<redo.length; i++) {
-    console.log(`redoing ${redo[i]}`)
-    await writeBlock(calendar, CALENDAR_ID, ...redo[i])
-  }
+  // for (let i=0; i<redo.length; i++) {
+  //   console.log(`redoing ${redo[i]}`)
+  //   await writeBlock(calendar, CALENDAR_ID, ...redo[i])
+  // }
 })

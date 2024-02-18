@@ -34,6 +34,7 @@ export async function writeBlock(calendar, CALENDAR_ID, frame, column, { start, 
     calendarId: CALENDAR_ID,
     resource: event
   })
+  // console.log(event)
   return res
 }
 

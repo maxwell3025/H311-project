@@ -14,6 +14,7 @@ class Block{
     }
 }
 
+const MAX_FLIPS = 1;
 /**
  * @param {boolean[][]} matrix 
  * @returns {Block[]}
@@ -32,20 +33,20 @@ export function buildCalendarColumn(matrix){
             if((rowWidth % colCountOptimized) !== 0)
                 continue;
             const stride = rowWidth / colCountOptimized;
-            let optimSuccessful = true;
+            let fails = 0;
             outRow.splice(0);
             // i is the horizontal order within the optimized row
             for(let i = 0; i < colCountOptimized; i++){
-                const blockColor = rawRow[i * stride];
-                if(!rawRow.slice(i * stride, i * stride + stride).every(pixColor => pixColor === blockColor)){
-                    // console.log(`${rawRow.toString()} cannot be optimized to resolution of ${colCountOptimized}`)
-                    optimSuccessful = false;
-                    break;
-                }
-                outRow.push(blockColor);
+                const group = rawRow.slice(i * stride, i * stride + stride);
+                const groupColor = (group.filter(x => x).length / group.length) > 0.5 ? true : false;
+                group.forEach(pixColor => {
+                    if((!!pixColor) !== groupColor) fails++;
+                });
+                outRow.push(groupColor);
             }
-            if(optimSuccessful)
+            if(fails <= MAX_FLIPS){
                 break;
+            }
         }
         return outRow;
     }

@@ -43,15 +43,16 @@ function sliceMatrix(input, width, height){
     return input;
 }
 
-export function SeperateTo7Days(matrix) {
+export function SeperateTo7Days(matrix, width, height) {
+    const per_row = (width / 7 - 1)
     const mkarr=(n,f)=>Array(n).fill(0).map(f)
     
-    const res = mkarr(7,()=>mkarr(70,()=>[]))
+    const res = mkarr(7,()=>mkarr(height,()=>[]))
     
-    for (let i=0; i<70; i++) {
+    for (let i=0; i<height; i++) {
         for (let j=0; j<7; j++) {
-            for (let k=0; k<15; k++) {
-                res[j][i].push(matrix[i][j*16+k])
+            for (let k=0; k<per_row; k++) {
+                res[j][i].push(matrix[i][j*(per_row+1)+k])
             }
         }
     }
