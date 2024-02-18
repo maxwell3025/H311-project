@@ -32,7 +32,7 @@ fs.readdir("./"+dir, async (_, files) => {
   const redo = []
   
   let total = 0;
-  for (let i=515; i<files.length; i++) {
+  for (let i=746; i<916; i++) {
     const matrixBeforResize = png2PixelMatrix(dir+'/'+files[i]);
     const matrixAfterResize = scalePixelMatrix(matrixBeforResize, HEIGHT, WIDTH);
     const days = SeperateTo7Days(matrixAfterResize, WIDTH, HEIGHT)
@@ -57,7 +57,7 @@ fs.readdir("./"+dir, async (_, files) => {
         })
         log(column, i)
 
-        await new Promise((res)=>setTimeout(res, 300))
+        await new Promise((res)=>setTimeout(res, 400))
         // total++
       }
     }

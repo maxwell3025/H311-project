@@ -2,6 +2,7 @@
 
 import puppeteer from "puppeteer"
 import fs from "fs/promises"
+const offset = 0;
 (async() => {
    await fs.mkdir("screenshots", {recursive: true});
    const browserURL = 'http://127.0.0.1:21222';
@@ -14,13 +15,13 @@ import fs from "fs/promises"
       width: 1500,
       height: 1000,
    })
-   for(let i = 0; i < 10; i++){
+   for(let i = 0; i < 916; i++){
+      await calendarPage.screenshot({
+         path: `screenshots/frame${i + offset}.png`
+      })
       await calendarPage.keyboard.press("j");
       await calendarPage.keyboard.press("j");
       await calendarPage.keyboard.press("k");
-      await calendarPage.screenshot({
-         path: `screenshots/frame${i}.png`
-      })
    }
    await browser.disconnect();
 })()
