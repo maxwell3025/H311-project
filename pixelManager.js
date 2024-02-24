@@ -111,7 +111,6 @@ export async function readColorImage(filePath) {
         return pixelArr;
 	});
 }
-readColorImage("./modifiedImages/red.png")
 /**
  * This method takes an image and a scale factor 
  * It first shrinks the image by the scale
