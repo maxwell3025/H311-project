@@ -14,7 +14,7 @@ class Block{
     }
 }
 
-const MAX_FLIPS = 1;
+const MAX_FLIPS = 0;
 /**
  * @param {boolean[][]} matrix 
  * @returns {Block[]}
