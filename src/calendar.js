@@ -1,11 +1,21 @@
 import { authorize } from "./auth.js"
-import { google } from 'googleapis';
+import { calendar_v3, google } from 'googleapis';
 import process from "process"
 
 // const CALENDAR_ID="43389c50be563ec14c5b7d28a65e3fc8081345a7c8c84cc8f225fa54f4139ee0@group.calendar.google.com"
 const BASE_DATE = new Date("2024-02-11")
 
+/**
+ * 
+ * @param {calendar_v3.calendar} calendar 
+ * @param {*} CALENDAR_ID 
+ * @param {*} frame 
+ * @param {*} column 
+ * @param {*} param4 
+ * @returns 
+ */
 export async function writeBlock(calendar, CALENDAR_ID, frame, column, { start, end, order, color }) {
+  // Example of recurrence: ['RRULE:FREQ=DAILY;UNTIL=20240728T035959Z;INTERVAL=2']
 
   const t_start = new Date(BASE_DATE)
   t_start.setUTCDate(t_start.getUTCDate() + frame * 7 + column)

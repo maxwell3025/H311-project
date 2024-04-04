@@ -43,7 +43,7 @@ function sliceMatrix(input, width, height){
     return input;
 }
 
-export function SeperateTo7Days(matrix, width, height) {
+export function SeparateTo7Days(matrix, width, height) {
     const per_row = (width / 7 - 1)
     const mkarr=(n,f)=>Array(n).fill(0).map(f)
     
