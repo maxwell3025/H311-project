@@ -2,7 +2,7 @@ import { calendar_v3, google } from 'googleapis';
 import process from "process"
 import { Block } from "./block.js";
 
-const BASE_DATE = new Date("2024-03-31")
+const BASE_DATE = new Date("2024-03-31T00:00:00.000-04:00")
 
 /**
  * 
@@ -15,6 +15,7 @@ export async function writeBlock(calendar, CALENDAR_ID, { start, end, order, col
   // Example of recurrence: ['RRULE:FREQ=DAILY;UNTIL=20240728T035959Z;INTERVAL=2']
 
   const t_start = new Date(BASE_DATE);
+  t_start.set
   t_start.setUTCDate(t_start.getUTCDate() + day);
   t_start.setMinutes(t_start.getMinutes() + start * 15);
 
@@ -29,11 +30,9 @@ export async function writeBlock(calendar, CALENDAR_ID, { start, end, order, col
     "summary": "a",
     "start": {
       "dateTime": s_start,
-      "timeZone": "America/New_York"
     },
     "end": {
       "dateTime": s_end,
-      "timeZone": "America/New_York"
     },
   };
   if (!color) event.colorId = "8";

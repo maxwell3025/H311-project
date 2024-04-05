@@ -29,17 +29,6 @@ const CALENDAR_ID = (await calendar.calendarList.list()).data.items.filter(a => 
 const WHITE_CALENDAR_ID = (await calendar.calendarList.list()).data.items.filter(a => a.summary == "bad")[0].id
 const BLACK_CALENDAR_ID = (await calendar.calendarList.list()).data.items.filter(a => a.summary == "apple")[0].id
 
-/*const keypress = async () => {
-  process.stdin.setRawMode(true);
-  process.stdin.resume();
-  return new Promise(resolve => process.stdin.once('data', () => {
-    process.stdin.setRawMode(false);
-    process.stdin.pause();
-    resolve();
-  }))
-};*/
-
-
 console.log("\nstarting\n");
 
 const files = await fs.readdir("./" + dir);
@@ -78,11 +67,13 @@ while (eventQueue.length != 0) {
     fs.appendFile(outfile, `Failed to write block ${JSON.stringify(newEvent)}\n`);
     fs.appendFile(outfile, `Delay increased to ${delay}ms\n`);
   });
+
   const frame = Math.floor(newEvent.day / 7);
   if (frame > currentFrame) {
     currentFrame = frame;
     fs.appendFile(outfile, `Completed ${frame - start}/${end - start}\n`)
   }
+
   await new Promise((res) => setTimeout(res, delay))
 }
 
