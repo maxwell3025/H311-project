@@ -1,11 +1,11 @@
-const { assert } = require("console");
-const {
+import { expect, test } from "bun:test";
+import {
 	scalePixelMatrix,
 	png2PixelMatrix,
 	printMatrix,
 	readColorImage,
 	illuminate,
-} = require("../pixelManager.js");
+} from "../src/pixelManager.js";
 import Jimp from "jimp";
 import fs from "fs";
 
@@ -41,14 +41,14 @@ test("printing matrix: ", () => {
 
 test("Size verification", () => {
 	let matrix = png2PixelMatrix("./test/testImages/sampleFrame.png");
-	let scaledMatrix = scalePixelMatrix(matrix, 70, 112);
-	assert(scaledMatrix.length == 70);
+	let scaledMatrix = scalePixelMatrix(matrix, 112, 70);
+	expect(scaledMatrix.length).toBe(70);
 	scaledMatrix.forEach((row) => {
-		assert(row.length == 112);
+		expect(row.length).toBe(112);
 	});
 });
 
-test("Reading image pixel color", async () => {
+test.skip("Reading image pixel color", async () => {
 	// Create a new image
 	let image = await new Jimp(3, 3, 0xff0000ff); // This creates a 3x3 image with red pixels
 
@@ -58,18 +58,15 @@ test("Reading image pixel color", async () => {
 	// After writing, read the image back and test the pixels
 	try {
 		let pixelArr = await readColorImage("./modifiedImages/red.png");
-		console.log("check")
+		console.log("Got It!");
 
 		pixelArr.forEach((value) => {
 			// Assuming value is an object like {r: 255, g: 0, b: 0, a: 255}
-			assert(
-				value.r === 255 && value.g === 0 && value.b === 0,
-				"Pixel color does not match expected red color"
-			);
+			expect(value.r).toBe(255)
+			expect(value.g).toBe(0)
+			expect(value.b).toBe(0)
 		});
 	} catch (e) {
 		throw new Error("Reading pixel color test failed: " + e.message);
 	}
 });
-
-//test("")

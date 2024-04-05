@@ -1,5 +1,5 @@
 import {test, expect} from "bun:test";
-import {buildCalendarColumn} from "../eventManager";
+import {buildCalendarColumn} from "../src/eventManager";
 
 /**
  * 
@@ -20,7 +20,6 @@ test("circle", ()=>{
     001100
     `)
     const output = buildCalendarColumn(input);
-    console.log(output.toString())
     expect(output.length).toBe(19)
 })
 
@@ -36,6 +35,5 @@ test("creeper", ()=>{
     00100100
     `)
     const output = buildCalendarColumn(input);
-    console.log(output.toString())
     expect(output.length).toBe(29)
 })

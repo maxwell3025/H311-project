@@ -61,6 +61,11 @@ function loadImageFromFile(filePath) {
 	return new Image(png.width, png.height, Uint8ClampedArray.from(png.data));
 }
 
+/**
+ * 
+ * @param {fs.PathLike} framePath 
+ * @returns {number[][]}
+ */
 export function png2PixelMatrix(framePath) {
 	const image = loadImageFromFile(framePath);
 	const { width, height } = image;
@@ -71,7 +76,7 @@ export function png2PixelMatrix(framePath) {
 		for (let x = 0; x < width; x++) {
 			const [red, green, blue] = image.getPixel(x, y);
 			const isBlackish = red <= 128 && green <= 128 && blue <= 128;
-			row.push(isBlackish ? "0" : "1"); //0 is black, 1 is white
+			row.push(isBlackish ? 0 : 1); //0 is black, 1 is white
 		}
 		binaryMatrix.push(row);
 	}
@@ -89,13 +94,10 @@ export function png2PixelMatrix(framePath) {
  */
 //readColorImage("./test/testImages/sampleFrame.png");
 export async function readColorImage(filePath) {
-    //console.log(filePath)
-    
-	await Jimp.read(filePath, (e, sample) => {
+	return Jimp.read(filePath, (e, sample) => {
 		if (e) throw e;
 		let imgHeight = sample.bitmap.height;
 		let imgWidth = sample.bitmap.width;
-
 
 		let pixelArr = [];
 		// read row by row
@@ -108,6 +110,7 @@ export async function readColorImage(filePath) {
 			}
 			pixelArr.push(row);
 		}
+		console.log("Done");
         return pixelArr;
 	});
 }
@@ -149,13 +152,13 @@ illuminate("./test/testImages/lenna.jpg", 0.5);
 /**
  * Takes a binary matrix image representation and scales down the image by non-overlapping block processing
  * Takes the average pixel value of each block and determines the new pixel value via a threshold
- * @param {Array} matrix - A matrix of 0s and 1s representing black and white image
+ * @param {number[][]} matrix - A matrix of 0s and 1s representing black and white image
  * @param {number} newHeight - new height to scale the image into
  * @param {number} newWidth - new width to scale the image into
- * @returns {Array} - A new binary matrix of the scaled down image
+ * @returns {number[][]} - A new binary matrix of the scaled down image
  */
 // width = # of col, height = # of row
-export function scalePixelMatrix(matrix, newHeight, newWidth) {
+export function scalePixelMatrix(matrix, newWidth, newHeight) {
 	let oldWidth = matrix[0].length;
 	let oldHeight = matrix.length;
 

@@ -1,13 +1,15 @@
 import { Block } from './block.js'
 /**
  * optimizes a row!
- * @param {boolean[]} rawRow 
+ * @param {number[]} rawRow 
  * @returns {boolean[]}
  */
 function optimizeRow(rawRow) {
     const rowWidth = rawRow.length;
     const outRow = [];
+    // console.log(rawRow);
     for (let colCountOptimized = 1; colCountOptimized <= rowWidth; colCountOptimized++) {
+        // console.log(`Trying row size of ${colCountOptimized}`)
         if ((rowWidth % colCountOptimized) !== 0)
             continue;
         const stride = rowWidth / colCountOptimized;
@@ -28,19 +30,24 @@ function optimizeRow(rawRow) {
     }
     return outRow;
 }
-// Tests
-// console.log(optimizeRow([true, true, false, false, true, true, false, false]))
-// console.log(optimizeRow([true, true, false, false, true, true]))
-// console.log(optimizeRow([true, true, true, false, false, false]))
-// console.log(optimizeRow([true, true, true, true, true, true]))
+
+/**
+ * @param {boolean[]} a 
+ * @param {boolean[]} b 
+ * @returns {boolean}
+ */
+function rowsEqual(a, b){
+    return a.length === b.length && a.every((a_i, i) => b[i] === a_i)
+}
 
 const MAX_FLIPS = 0;
+
 /**
  * @param {boolean[][]} matrix 
  * @returns {Block[]}
  * NOTE: `Block.column` is set to `0` for all blocks and start/end times are just integers starting at `0`
  */
-export function buildCalendarColumn(matrix) {
+export function buildCalendarColumn(matrix, day) {
 
     const output = [];
 
@@ -48,28 +55,23 @@ export function buildCalendarColumn(matrix) {
     let vBlockStart = 0;
     let vBlockEnd = 0;
     matrix.forEach(row => {
-        const optimized = optimizeRow(row);
+        const newRow = optimizeRow(row);
         // Ignore if equal
-        const isEqual =
-            (optimized.length === vBlockData.length) &&
-            optimized.every((newColor, column) => {
-                return vBlockData[column] === newColor;
-            });
-        if (!isEqual) {
+        if (!rowsEqual(vBlockData, newRow)) {
+            // console.log(`Adding new row ${newRow}`)
             // Push old block
             vBlockData.forEach((color, order) => {
-                output.push(new Block(vBlockStart, vBlockEnd, order, color));
+                output.push(new Block(vBlockStart, vBlockEnd, order, color, day));
             })
             // Initialize a new block
             vBlockStart = vBlockEnd;
-            vBlockData = optimized.map(x => x);
+            vBlockData = newRow.map(x => x);
         }
         vBlockEnd++;
     })
     // Push the final block
     vBlockData.forEach((color, order) => {
-        output.push(new Block(vBlockStart, vBlockEnd, order, color));
+        output.push(new Block(vBlockStart, vBlockEnd, order, color, day));
     })
     return output;
 }
-

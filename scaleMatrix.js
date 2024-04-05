@@ -43,6 +43,12 @@ function sliceMatrix(input, width, height){
     return input;
 }
 
+/**
+ * @param {number[][]} matrix 
+ * @param {number} width 
+ * @param {number} height 
+ * @returns {number[][][]}
+ */
 export function SeparateTo7Days(matrix, width, height) {
     const per_row = (width / 7 - 1)
     const mkarr=(n,f)=>Array(n).fill(0).map(f)
