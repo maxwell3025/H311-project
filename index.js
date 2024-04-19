@@ -41,9 +41,7 @@ async function createCalendar(name, color) {
   }
 
   const oldCalendars = (await calendar.calendarList.list()).data.items.filter(a => a.summary === name);
-  await Promise.all(oldCalendars.map(async oldCalendar => {
-    await calendar.calendarList.delete({calendarId: oldCalendar.id})
-  }));
+  if(oldCalendars) return oldCalendars[0].id;
 
   const newCalendar = { summary: name };
   const response = await calendar.calendars.insert({ requestBody: newCalendar });
