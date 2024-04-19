@@ -5,10 +5,11 @@ import { SeparateTo7Days } from "./scaleMatrix.js";
 import { authorize } from "./src/auth.js";
 import { writeBlock, log } from './src/calendar.js';
 import { buildCalendarColumn } from './src/eventManager.js';
-import { google } from 'googleapis';
+import { calendar_v3, google } from 'googleapis';
 import { Block } from './src/block.js';
 import process from "process"
 import readline from "node:readline/promises"
+import { optimizeRecurrences } from './src/recurrenceOptimizer.js';
 
 const HEIGHT = 70;
 const WIDTH = 91;
@@ -25,16 +26,46 @@ rl.close()
 const auth = await authorize()
 const calendar = google.calendar({ version: 'v3', auth });
 
-const CALENDAR_ID = (await calendar.calendarList.list()).data.items.filter(a => a.summary == "bad apple")[0].id
-const WHITE_CALENDAR_ID = (await calendar.calendarList.list()).data.items.filter(a => a.summary == "bad")[0].id
-const BLACK_CALENDAR_ID = (await calendar.calendarList.list()).data.items.filter(a => a.summary == "apple")[0].id
+console.log("hi")
+/**
+ * 
+ * @param {string} name 
+ * @param {string} color 
+ */
+async function createCalendar(name, color) {
+  if(!name.includes("Bad Apple")) throw new Error(`Name must contain "Bad Apple". Received "${name}" instead.`);
+
+  let foregroundColor = color;
+  if(foregroundColor !== "#000000" && foregroundColor !== "#ffffff"){
+    foregroundColor = "#ffffff";
+  }
+
+  const oldCalendars = (await calendar.calendarList.list()).data.items.filter(a => a.summary === name);
+  await Promise.all(oldCalendars.map(async oldCalendar => {
+    await calendar.calendarList.delete({calendarId: oldCalendar.id})
+  }));
+
+  const newCalendar = { summary: name };
+  const response = await calendar.calendars.insert({ requestBody: newCalendar });
+  const calendarID = response.data.id;
+  const calendarListEntry = {
+    backgroundColor: color,
+    foregroundColor,
+    id: calendarID
+  }
+  const calendarListResponse = await calendar.calendarList.insert({ colorRgbFormat: true, requestBody: calendarListEntry})
+  return calendarListResponse.data.id;
+}
+
+const BLACK_CALENDAR_ID = await createCalendar("bad [Bad Apple App]", "#ff0000");
+const WHITE_CALENDAR_ID = await createCalendar("apple [Bad Apple App]", "#00ffff");
 
 console.log("\nstarting\n");
 
 const files = await fs.readdir("./" + dir);
 let die = false
 /** @type {Block[]} */
-const eventQueue = []
+let eventQueue = []
 
 for (let i = Math.max(start, 0); i < Math.min(end, files.length); i++) {
   const matrixBeforeResize = png2PixelMatrix(dir + '/' + (i + 1).toString().padStart(4, "0") + ".png");
@@ -44,75 +75,44 @@ for (let i = Math.max(start, 0); i < Math.min(end, files.length); i++) {
   eventQueue.push(...blocks.flat())
 }
 
-const MIN_DELAY = 1000;
+eventQueue = optimizeRecurrences(eventQueue);
+eventQueue = eventQueue.toSorted((lhs, rhs) => lhs.day - rhs.day);
+
+const MIN_DELAY = 100;
+const MAX_DELAY = 2000;
 const BACKOFF_FACTOR = 2;
-const RELAXATION_FACTOR = 0.95;
+const RELAXATION_FACTOR = 0.99;
 let delay = MIN_DELAY;
 
 let total = 0;
 let currentFrame = 0;
 
+fs.appendFile(outfile, `${eventQueue.length} Requests needed.\n`);
+fs.appendFile(outfile, `Estimated duration is ${eventQueue.length * MIN_DELAY * 0.001}s\n`);
+
 while (eventQueue.length != 0) {
   /** @type {Block} */
   const newEvent = eventQueue.shift();
-  await writeBlock(calendar, CALENDAR_ID, newEvent).then(() => {
+  writeBlock(calendar, BLACK_CALENDAR_ID, WHITE_CALENDAR_ID, newEvent).then(() => {
     // Success
     delay = Math.max(MIN_DELAY, delay * RELAXATION_FACTOR);
     total++;
   }, err => {
     // Failure
-    delay *= BACKOFF_FACTOR;
+    delay = Math.min(MAX_DELAY, delay * BACKOFF_FACTOR);
     eventQueue.push(newEvent);
     fs.appendFile(outfile, `${err}\n`);
     fs.appendFile(outfile, `Failed to write block ${JSON.stringify(newEvent)}\n`);
     fs.appendFile(outfile, `Delay increased to ${delay}ms\n`);
   });
 
-  const frame = Math.floor(newEvent.day / 7);
-  if (frame > currentFrame) {
-    currentFrame = frame;
-    fs.appendFile(outfile, `Completed ${frame - start}/${end - start}\n`)
+  currentFrame = Math.floor(newEvent.day / 7);
+  const nextFrame = eventQueue.length === 0 ? null : Math.floor(eventQueue[0].day / 7);
+  if (nextFrame === null || nextFrame === currentFrame + 1) {
+    fs.appendFile(outfile, `Completed ${currentFrame - start + 1}/${end - start} frames\n`)
   }
 
   await new Promise((res) => setTimeout(res, delay))
 }
 
 process.exit(0);
-for (let i = start || 0; i < end || files.length; i++) {
-  const matrixBeforeResize = png2PixelMatrix(dir + '/' + files[i]);
-  const matrixAfterResize = scalePixelMatrix(matrixBeforeResize, WIDTH, HEIGHT);
-  const days = SeparateTo7Days(matrixAfterResize, WIDTH, HEIGHT)
-  const blocks = days.map(day => buildCalendarColumn(day))
-
-  for (let column = 0; column < 7; column++) {
-    total += blocks[column].length
-    for (const block of blocks[column]) {
-      while (die) {
-        await new Promise(res => setTimeout(res, 6000))
-        // process.stdout.write("waiting 10s")
-      }
-
-      writeBlock(calendar, CALENDAR_ID, i, column, block).then(() => { }, () => {
-        redo.push([i, column, block])
-
-        fs.appendFile(outfile, "died\n")
-        die = true
-        setTimeout(() => {
-          fs.appendFile(outfile, "undied\n")
-          die = false
-        }, 30000)
-        // console.log("Press any key to continue:\n");
-        // keypress().then(() => {die = false})
-      })
-      // log(column, i)
-
-      await new Promise((res) => setTimeout(res, 1000))
-    }
-    fs.appendFile(outfile, `frame ${i}/${end}\n`)
-  }
-}
-fs.appendFile(outfile, "redoing\n")
-for (let i = 0; i < redo.length; i++) {
-  fs.appendFile(outfile, `redoing ${redo[i]}\n`)
-  await writeBlock(calendar, CALENDAR_ID, ...redo[i])
-}

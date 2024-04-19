@@ -7,11 +7,12 @@ const BASE_DATE = new Date("2024-03-31T00:00:00.000-04:00")
 /**
  * 
  * @param {calendar_v3.Calendar} calendar 
- * @param {string} CALENDAR_ID 
+ * @param {string} BLACK_ID 
+ * @param {string} WHITE_ID 
  * @param {Block} _block 
  * @returns 
  */
-export async function writeBlock(calendar, CALENDAR_ID, { start, end, order, color, day }) {
+export async function writeBlock(calendar, BLACK_ID, WHITE_ID, { start, end, order, color, day, repCount, repGap }) {
   // Example of recurrence: ['RRULE:FREQ=DAILY;UNTIL=20240728T035959Z;INTERVAL=2']
 
   const t_start = new Date(BASE_DATE);
@@ -23,21 +24,34 @@ export async function writeBlock(calendar, CALENDAR_ID, { start, end, order, col
   t_end.setMinutes(t_end.getMinutes() + (end - start) * 15);
   t_start.setSeconds(t_start.getSeconds() + order);
 
+  const t_rend = new Date(t_end);
+  t_rend.setUTCDate(t_rend.getUTCDate() + (repCount - 1) * repGap)
+
   const s_start = t_start.toISOString()
   const s_end = t_end.toISOString()
+  const s_rend = t_rend.toISOString()
 
+
+  const rrule = `RRULE:FREQ=DAILY;COUNT=${repCount};INTERVAL=${repGap}`;
+  // const rrule = `RRULE:FREQ=DAILY;COUNT=2;INTERVAL=1`;
+  console.log(rrule);
+  /** @type {calendar_v3.Schema$Event} */
   const event =  {
-    "summary": "a",
-    "start": {
-      "dateTime": s_start,
+    summary: "a",
+    start: {
+      dateTime: s_start,
+      timeZone: "GMT"
     },
-    "end": {
-      "dateTime": s_end,
+    end: {
+      dateTime: s_end,
+      timeZone: "GMT"
     },
+    recurrence: [
+      rrule
+    ]
   };
-  if (!color) event.colorId = "8";
   const res = calendar.events.insert({
-    calendarId: CALENDAR_ID,
+    calendarId: color ? WHITE_ID : BLACK_ID,
     resource: event
   });
   return res;

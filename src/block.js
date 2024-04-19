@@ -24,10 +24,10 @@ export class Block {
         this.color = color;
         this.day = day;
         this.repGap = repGap;
-        this.repCount = repGap;
+        this.repCount = repCount;
     }
 
     toString() {
-        return `${this.color ? "b" : "w"}${this.start}-${this.end}`
+        return `${this.start}-${this.end}${this.color ? "B" : "W"}${this.order}@${this.day}+${this.repGap}x${this.repCount}`
     }
 }
