@@ -105,28 +105,9 @@ export function intoSubSequencesGreedy(arr) {
 /**
  * Finds an efficient partition of `arr` into arithmetic sequences.
  * @param {number[]} arr an array of numbers **sorted in ascending order**
+ * @param {ArithmeticSequence[]} inital an array of numbers **sorted in ascending order**
  * @returns {ArithmeticSequence[]}
  */
-export function intoSubSequences(arr) {
-    const N = arr.length;
-    const elementSet = new Set(arr);
-    /** @type { Set<string> } */
-    const fullSequences = new Set();
-    for (let i = 0; i < N; i++) {
-        for (let j = 0; j < i; j++) {
-            const pivotOne = arr[j];
-            const pivotTwo = arr[i];
-            if(!elementSet.has(pivotOne * 2 - pivotTwo)){
-                const gap = pivotTwo - pivotOne;
-                let currentElement = pivotOne;
-                let size = 0;
-                while(elementSet.has(currentElement)){
-                    size++;
-                    currentElement += gap;
-                }
-                fullSequences.add(new ArithmeticSequence(pivotOne, size, gap).toString())
-            }
-        }
-    }
+export function intoSubSequencesAnnealing(arr, initial) {
 
 }

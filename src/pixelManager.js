@@ -2,7 +2,6 @@ import pngjs from "pngjs";
 import fs from "fs";
 import assert from "assert";
 import Jimp from "jimp";
-import { error } from "console";
 
 // Example usage:
 //const framePath = './test/testImages/miku.png'; // Replace 'yingyang.png' with the path to your image file
@@ -158,7 +157,7 @@ illuminate("./test/testImages/lenna.jpg", 0.5);
  * @returns {number[][]} - A new binary matrix of the scaled down image
  */
 // width = # of col, height = # of row
-export function scalePixelMatrix(matrix, newWidth, newHeight) {
+export function resizePixelMatrix(matrix, newWidth, newHeight) {
 	let oldWidth = matrix[0].length;
 	let oldHeight = matrix.length;
 

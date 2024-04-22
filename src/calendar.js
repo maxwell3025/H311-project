@@ -1,19 +1,104 @@
-import { calendar_v3, google } from 'googleapis';
-import process from "process"
+import "dotenv";
+import { calendar_v3 } from 'googleapis';
 import { Block } from "./block.js";
 
 const BASE_DATE = new Date("2024-03-31T00:00:00.000-04:00")
 
 /**
- * 
+ * clears a calendar
+ * @param {calendar_v3.Calendar} calendar 
+ * @param {string} CALENDAR_ID 
+ */
+async function clearCalendar(calendar, CALENDAR_ID){
+    const allOldEvents = await listEvents(calendar, CALENDAR_ID);
+    console.log(`Deleting ${allOldEvents.length} events`);
+    while (allOldEvents.length !== 0) {
+      const e = allOldEvents.shift();
+      await backoff(deleteEvent(calendar, CALENDAR_ID, e.id)).catch(
+        () => allOldEvents.push(e)
+      );
+    }
+}
+/**
+ * Creates a calendar with the given name and color
+ * @param {calendar_v3.Calendar} calendar 
+ * @param {string} name 
+ * @param {string} color 
+ */
+export async function createCalendar(calendar, name, color) {
+  if (!name.includes("Bad Apple")) throw new Error(`Name must contain "Bad Apple". Received "${name}" instead.`);
+
+  let foregroundColor = color;
+  if (foregroundColor !== "#000000" && foregroundColor !== "#ffffff") {
+    foregroundColor = "#ffffff";
+  }
+
+  const calendarListResponse = await calendar.calendarList.list();
+  const oldCalendars = calendarListResponse.data.items.filter(a => a.summary === name);
+  if (oldCalendars.length >= 1) {
+    await clearCalendar(calendar, oldCalendars[0].id);
+    return oldCalendars[0].id;
+  }
+
+  const newCalendar = { summary: name };
+  const response = await calendar.calendars.insert({ requestBody: newCalendar });
+  const calendarID = response.data.id;
+  const calendarListEntry = {
+    backgroundColor: color,
+    foregroundColor,
+    id: calendarID
+  }
+
+  const calendarCreateResponse = await calendar.calendarList.insert({ colorRgbFormat: true, requestBody: calendarListEntry })
+  return calendarCreateResponse.data.id;
+}
+
+let delay = process.env.MIN_DELAY;
+export async function backoff(prom){
+  await new Promise((resolve) => setTimeout(resolve, delay));
+  return await prom.then(
+    res => {
+      delay = Math.max(process.env.MIN_DELAY, delay * process.env.RELAXATION_FACTOR);
+      return res;
+    },
+    err => {
+      delay = Math.min(process.env.MAX_DELAY, delay * process.env.BACKOFF_FACTOR);
+      console.error(`Delay increased to ${delay}ms`);
+      return Promise.reject(err);
+    }
+  )
+}
+
+/**
+ * Deletes an event from a calendar
+ * @param {calendar_v3.Calendar} calendar 
+ * @param {string} CALENDAR_ID 
+ * @param {string} EVENT_ID 
+ */
+export async function deleteEvent(calendar, CALENDAR_ID, EVENT_ID) {
+  console.log(`deleting event ${EVENT_ID}`);
+  await calendar.events.delete({ calendarId: CALENDAR_ID, eventId: EVENT_ID });
+}
+
+/**
+ * Lists the events present in a calendar
+ * @param {calendar_v3.Calendar} calendar 
+ * @param {string} CALENDAR_ID 
+ * @returns {calendar_v3.Schema$Event[]}
+ */
+export async function listEvents(calendar, CALENDAR_ID) {
+  return (await calendar.events.list({ calendarId: CALENDAR_ID, maxResults: 1000})).data.items;
+}
+
+/**
+ * Writes a block onto the calendar
  * @param {calendar_v3.Calendar} calendar 
  * @param {string} BLACK_ID 
  * @param {string} WHITE_ID 
- * @param {Block} _block 
+ * @param {Block} block 
  * @returns 
  */
 export async function writeBlock(calendar, BLACK_ID, WHITE_ID, { start, end, order, color, day, repCount, repGap }) {
-  // Example of recurrence: ['RRULE:FREQ=DAILY;UNTIL=20240728T035959Z;INTERVAL=2']
 
   const t_start = new Date(BASE_DATE);
   t_start.set
@@ -24,19 +109,13 @@ export async function writeBlock(calendar, BLACK_ID, WHITE_ID, { start, end, ord
   t_end.setMinutes(t_end.getMinutes() + (end - start) * 15);
   t_start.setSeconds(t_start.getSeconds() + order);
 
-  const t_rend = new Date(t_end);
-  t_rend.setUTCDate(t_rend.getUTCDate() + (repCount - 1) * repGap)
-
   const s_start = t_start.toISOString()
   const s_end = t_end.toISOString()
-  const s_rend = t_rend.toISOString()
-
 
   const rrule = `RRULE:FREQ=DAILY;COUNT=${repCount};INTERVAL=${repGap}`;
-  // const rrule = `RRULE:FREQ=DAILY;COUNT=2;INTERVAL=1`;
   console.log(rrule);
   /** @type {calendar_v3.Schema$Event} */
-  const event =  {
+  const event = {
     summary: "a",
     start: {
       dateTime: s_start,
@@ -46,54 +125,12 @@ export async function writeBlock(calendar, BLACK_ID, WHITE_ID, { start, end, ord
       dateTime: s_end,
       timeZone: "GMT"
     },
-    recurrence: [
-      rrule
-    ]
+    recurrence: [rrule]
   };
+
   const res = calendar.events.insert({
     calendarId: color ? WHITE_ID : BLACK_ID,
     resource: event
   });
   return res;
-}
-
-
-
-export function log(column, frame) {
-  process.stdout.write(`\r[${".".repeat(column)}${" ".repeat(6 - column)}]` +
-    `[${".".repeat(Math.ceil(frame/26.27))}${" ".repeat((2627-frame)/26.27|0)}]` +
-    ` aka ${frame} / ${2627}`)
-}
-
-export async function writeFrame(calendar, blocks, frame) {
-
-  // for (let column=0; column<7; column++) { 
-    // for (const block of blocks[column]) {
-      // await writeBlock(calendar, frame, column, block)
-        // .then(() => log(column, frame), () => { console.log("DYING"); process.exit(0)})
-    // }
-  // }
-
-}
-
-function writeFrameToICSs(blocks, frame) {
-  let white = ""
-  let black = ""
-
-  for (const block of blocks) {
-    writeBlock(frame, block, event => {
-      let stuff = "BEGIN:VEVENT\n"
-      const start = new Date(event.start.dateTime).getTime()
-      const end = new Date(event.end.dateTime).getTime()
-      stuff += `DTSTAMP:${start}\n`
-      stuff += `DTSTART:${start}\n`
-      stuff += `DTEND:${end}\n`
-      stuff += `SUMMART:${event.summary}\n`
-      stuff += "END:VEVENT\n"
-      if (event.colorId) black += stuff
-      else white += stuff
-    })
-  }
-
-  return [white, black]
 }
