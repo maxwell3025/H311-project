@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import {
-	scalePixelMatrix,
+	resizePixelMatrix,
 	png2PixelMatrix,
 	printMatrix,
 	readColorImage,
@@ -23,7 +23,7 @@ test("Basic 4x4 matrix", () => {
 		[0, 1],
 		[0, 0],
 	];
-	let scaledMatrix = scalePixelMatrix(matrix, newHeight, newWidth);
+	let scaledMatrix = resizePixelMatrix(matrix, newHeight, newWidth);
 	for (let i = 0; i < scaledMatrix[0].length; i++) {
 		for (let j = 0; j < scaledMatrix.length; j++) {
 			expect(scaledMatrix[i][j]).toBe(resultMatrix[i][j]);
@@ -34,14 +34,14 @@ test("Basic 4x4 matrix", () => {
 // 480 x 360 -> 112 x 70
 test("printing matrix: ", () => {
 	let matrix = png2PixelMatrix("./test/testImages/sampleFrame.png");
-	let scaledMatrix = scalePixelMatrix(matrix, 70, 112);
+	let scaledMatrix = resizePixelMatrix(matrix, 70, 112);
 	//console.log("Unscaled BAD APPLE: ", matrix)
 	//console.log("Scaled BAD APPLE: ", printMatrix(scaledMatrix));
 });
 
 test("Size verification", () => {
 	let matrix = png2PixelMatrix("./test/testImages/sampleFrame.png");
-	let scaledMatrix = scalePixelMatrix(matrix, 112, 70);
+	let scaledMatrix = resizePixelMatrix(matrix, 112, 70);
 	expect(scaledMatrix.length).toBe(70);
 	scaledMatrix.forEach((row) => {
 		expect(row.length).toBe(112);

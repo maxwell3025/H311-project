@@ -27,13 +27,13 @@ export function optimizeEventClass(eventList) {
     const sequenceList = intoSubSequencesGreedy(dayArray);
     const representative = sortedEvents[0];
     return sequenceList.map(sequence => new Block(
-            representative.start, 
-            representative.end, 
-            representative.order, 
-            representative.color, 
-            sequence.start, 
-            sequence.gaps, 
-            sequence.repeats
+        representative.start,
+        representative.end,
+        representative.order,
+        representative.color,
+        sequence.start,
+        sequence.gaps,
+        sequence.repeats
     ));
 }
 
@@ -56,8 +56,19 @@ export class ArithmeticSequence {
         return `${this.start},${this.gaps},${this.repeats}`
     }
 
+    prettyPrint() {
+        const stringList = [];
+        let currentNumber = this.start;
+        for(let i = 0; i < this.repeats; i++){
+            stringList.push(currentNumber.toString().padStart(4, "0"));
+            currentNumber += this.gaps;
+        }
+        return stringList.join(' - ');
+    }
+
     /**
      * @param {string} str 
+     * @returns {ArithmeticSequence}
      */
     static valueOf(str) {
         const [start, gaps, repeats] = str.split(",");
@@ -79,13 +90,13 @@ export function intoSubSequencesGreedy(arr) {
     const output = [];
     /** @type {ArithmeticSequence | number | null} */
     let currentSequence = null;
-    arr.forEach( value => {
-        if(currentSequence === null){
+    arr.forEach(value => {
+        if (currentSequence === null) {
             currentSequence = value;
-        } else if (typeof currentSequence === "number"){
+        } else if (typeof currentSequence === "number") {
             currentSequence = new ArithmeticSequence(currentSequence, value - currentSequence, 2);
         } else {
-            if(value === currentSequence.start + currentSequence.gaps * currentSequence.repeats){
+            if (value === currentSequence.start + currentSequence.gaps * currentSequence.repeats) {
                 currentSequence.repeats++;
             } else {
                 output.push(currentSequence);
@@ -94,20 +105,157 @@ export function intoSubSequencesGreedy(arr) {
         }
     })
 
-    if(typeof currentSequence === "number"){
+    if (typeof currentSequence === "number") {
         output.push(new ArithmeticSequence(currentSequence, 1, 1));
-    } else if (currentSequence instanceof ArithmeticSequence){
+    } else if (currentSequence instanceof ArithmeticSequence) {
         output.push(currentSequence);
     }
     return output;
 }
 
 /**
- * Finds an efficient partition of `arr` into arithmetic sequences.
- * @param {number[]} arr an array of numbers **sorted in ascending order**
- * @param {ArithmeticSequence[]} inital an array of numbers **sorted in ascending order**
+ * @param {ArithmeticSequence} a 
+ * @param {ArithmeticSequence} b 
+ */
+function canMergeSorted(a, b) {
+    if (a.repeats === 1 && b.repeats === 1) return true;
+    if (a.repeats === 1) {
+        return a.start === b.start - b.gaps;
+    }
+    if (b.repeats === 1) {
+        return b.start === a.start + a.gaps * a.repeats;
+    }
+    if (a.gaps !== b.gaps) return false;
+    return b.start === a.start + a.gaps * a.repeats;
+}
+
+/**
+ * @param {ArithmeticSequence} a 
+ * @param {ArithmeticSequence} b 
+ */
+export function canMerge(a, b) {
+    if (a.start < b.start) {
+        return canMergeSorted(a, b);
+    } else {
+        return canMergeSorted(b, a);
+    }
+}
+
+/**
+ * Merges 2 Arithmetic Sequences into 1
+ * @param {ArithmeticSequence} a 
+ * @param {ArithmeticSequence} b 
+ * @returns {ArithmeticSequence}
+ */
+export function mergeSequences(a, b) {
+    if (a.start > b.start) [a, b] = [b, a];
+    if ((a.repeats === 1) && (b.repeats === 1)) {
+        return new ArithmeticSequence(
+            a.start,
+            b.start - a.start,
+            2
+        );
+    }
+    if(a.repeats === 1){
+        return new ArithmeticSequence(
+            a.start,
+            b.gaps,
+            b.repeats + 1
+        );
+    }
+    if(b.repeats === 1){
+        return new ArithmeticSequence(
+            a.start,
+            a.gaps,
+            a.repeats + 1
+        );
+    }
+    return new ArithmeticSequence(a.start, a.gaps, a.repeats + b.repeats);
+}
+
+/**
+ * Splits an arithmetic sequence at a certain point
+ * @param {ArithmeticSequence} seq 
+ * @param {number} pos
+ * @returns {[ArithmeticSequence, ArithmeticSequence]}
+ */
+export function splitSequence(seq, pos) {
+    const a = new ArithmeticSequence(
+        seq.start,
+        seq.gaps,
+        pos
+    );
+    const b = new ArithmeticSequence(
+        seq.start + seq.gaps * (pos),
+        seq.gaps,
+        seq.repeats - pos
+    );
+    return [a, b];
+}
+
+/**
+ * Mutates a given partition.
+ * @param {ArithmeticSequence[]} initial
  * @returns {ArithmeticSequence[]}
  */
-export function intoSubSequencesAnnealing(arr, initial) {
+export function mutateSimple(initial) {
+    const possibleMerges = [];
+    const possibleSplits = [];
+    for (let i = 0; i < initial.length; i++) {
+        for (let j = 0; j < i; j++) {
+            if (canMerge(initial[i], initial[j])) {
+                possibleMerges.push([j, i]);
+            }
+        }
+    }
+    initial.forEach((sequence, index) => {
+        for (let i = 0; i < sequence.repeats - 1; i++) {
+            possibleSplits.push([index, i + 1]);
+        }
+    });
+    const mutationIndex = Math.floor(Math.random() * (possibleMerges.length + possibleSplits.length))
+    const newSequence = [...initial];
+    if (mutationIndex < possibleMerges.length) {
+        const mergeIndex = mutationIndex;
+        let [indexA, indexB] = possibleMerges[mergeIndex];
+        let [b] = newSequence.splice(indexB, 1);
+        let [a] = newSequence.splice(indexA, 1);
+        newSequence.push(mergeSequences(a, b));
+    } else {
+        const splitIndex = mutationIndex - possibleMerges.length;
+        const [index, pos] = possibleSplits[splitIndex];
+        const [sequenceToSplit] = newSequence.splice(index, 1);
+        newSequence.push(...splitSequence(sequenceToSplit, pos));
+    }
+    return newSequence;
+}
 
+/**
+ * Anneals a efficient partition to minimize number of segments.
+ * @param {ArithmeticSequence[]} partition
+ * @param {(initial: ArithmeticSequence[]) => ArithmeticSequence} mutationFunction 
+ * @returns {ArithmeticSequence[]}
+ */
+export function annealSubsequence(partition, mutationFunction) {
+    let temperature = 0.3;
+    let min = 100;
+    function singleStep(initial){
+        const newCandidate = mutationFunction(initial);
+        const diffEnergy = newCandidate.length - initial.length;
+        const acceptanceProbability = Math.exp(-diffEnergy / temperature)
+        if(Math.random() < acceptanceProbability) return newCandidate;
+        else return initial;
+    }
+    for(let i = 0; i < 10000; i++){
+        // temperature -= 0.01;
+        partition = singleStep(partition);
+        // console.log(temperature);
+        console.log(partition.length);
+        if(min > partition.length) min = partition.length;
+        // partition.forEach(sequence => {
+        //     console.log(sequence.prettyPrint());
+        // })
+    }
+    console.log(min);
+    return partition;
 }
