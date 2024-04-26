@@ -171,7 +171,7 @@ export async function uploadEvents(calendar, eventQueue, BLACK_CALENDAR_ID, WHIT
     currentFrame = Math.floor(newEvent.day / 7);
     const nextFrame = eventQueue.length === 0 ? null : Math.floor(eventQueue[0].day / 7);
     if (nextFrame === null || nextFrame === currentFrame + 1) {
-      console.log(`Completed ${currentFrame - start + 1}/${end - start} frames`);
+      console.log(`Completed ${currentFrame} frames`);
     }
   }
 }

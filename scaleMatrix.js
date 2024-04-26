@@ -50,7 +50,7 @@ function sliceMatrix(input, width, height){
  * @returns {number[][][]}
  */
 export function SeparateTo7Days(matrix, width, height) {
-    const per_row = (width / 7 - 1)
+    const per_row = (width / 7)
     const mkarr=(n,f)=>Array(n).fill(0).map(f)
     
     const res = mkarr(7,()=>mkarr(height,()=>[]))
@@ -58,7 +58,7 @@ export function SeparateTo7Days(matrix, width, height) {
     for (let i=0; i<height; i++) {
         for (let j=0; j<7; j++) {
             for (let k=0; k<per_row; k++) {
-                res[j][i].push(matrix[i][j*(per_row+1)+k])
+                res[j][i].push(matrix[i][j*per_row+k])
             }
         }
     }
