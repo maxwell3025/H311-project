@@ -237,7 +237,7 @@ export function mutateSimple(initial) {
  * @returns {ArithmeticSequence[]}
  */
 export function annealSubsequence(partition, mutationFunction) {
-    let temperature = 0.3;
+    let temperature = 0.5;
     let min = 100;
     function singleStep(initial){
         const newCandidate = mutationFunction(initial);
@@ -246,7 +246,7 @@ export function annealSubsequence(partition, mutationFunction) {
         if(Math.random() < acceptanceProbability) return newCandidate;
         else return initial;
     }
-    for(let i = 0; i < 10000; i++){
+    for(let i = 0; i < 100000; i++){
         // temperature -= 0.01;
         partition = singleStep(partition);
         // console.log(temperature);
