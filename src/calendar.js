@@ -4,57 +4,8 @@ import { Block } from "./block.js";
 
 const BASE_DATE = new Date("2024-03-31T00:00:00.000-04:00")
 
-/**
- * clears a calendar
- * @param {calendar_v3.Calendar} calendar 
- * @param {string} CALENDAR_ID 
- */
-async function clearCalendar(calendar, CALENDAR_ID){
-    const allOldEvents = await listEvents(calendar, CALENDAR_ID);
-    console.log(`Deleting ${allOldEvents.length} events`);
-    while (allOldEvents.length !== 0) {
-      const e = allOldEvents.shift();
-      await backoff(deleteEvent(calendar, CALENDAR_ID, e.id)).catch(
-        () => allOldEvents.push(e)
-      );
-    }
-}
-/**
- * Creates a calendar with the given name and color
- * @param {calendar_v3.Calendar} calendar 
- * @param {string} name 
- * @param {string} color 
- */
-export async function createCalendar(calendar, name, color) {
-  if (!name.includes("Bad Apple")) throw new Error(`Name must contain "Bad Apple". Received "${name}" instead.`);
-
-  let foregroundColor = color;
-  if (foregroundColor !== "#000000" && foregroundColor !== "#ffffff") {
-    foregroundColor = "#ffffff";
-  }
-
-  const calendarListResponse = await calendar.calendarList.list();
-  const oldCalendars = calendarListResponse.data.items.filter(a => a.summary === name);
-  if (oldCalendars.length >= 1) {
-    await clearCalendar(calendar, oldCalendars[0].id);
-    return oldCalendars[0].id;
-  }
-
-  const newCalendar = { summary: name };
-  const response = await calendar.calendars.insert({ requestBody: newCalendar });
-  const calendarID = response.data.id;
-  const calendarListEntry = {
-    backgroundColor: color,
-    foregroundColor,
-    id: calendarID
-  }
-
-  const calendarCreateResponse = await calendar.calendarList.insert({ colorRgbFormat: true, requestBody: calendarListEntry })
-  return calendarCreateResponse.data.id;
-}
-
 let delay = process.env.MIN_DELAY;
-export async function backoff(prom){
+export async function backoff(prom) {
   await new Promise((resolve) => setTimeout(resolve, delay));
   return await prom.then(
     res => {
@@ -87,7 +38,65 @@ export async function deleteEvent(calendar, CALENDAR_ID, EVENT_ID) {
  * @returns {calendar_v3.Schema$Event[]}
  */
 export async function listEvents(calendar, CALENDAR_ID) {
-  return (await calendar.events.list({ calendarId: CALENDAR_ID, maxResults: 1000})).data.items;
+  /** @type {calendar_v3.Params$Resource$Events$List} */
+  const listParams = {
+    calendarId: CALENDAR_ID,
+    maxResults: 1000,
+    showDeleted: false,
+    singleEvents: true,
+  }
+  const result = await calendar.events.list(listParams);
+  return result.data.items;
+}
+
+/**
+ * clears a calendar
+ * @param {calendar_v3.Calendar} calendar 
+ * @param {string} CALENDAR_ID 
+ */
+async function clearCalendar(calendar, CALENDAR_ID) {
+  const allOldEvents = await listEvents(calendar, CALENDAR_ID);
+  console.log(`Deleting ${allOldEvents.length} events`);
+  while (allOldEvents.length !== 0) {
+    const e = allOldEvents.shift();
+    await backoff(deleteEvent(calendar, CALENDAR_ID, e.id)).catch(
+      () => allOldEvents.push(e)
+    );
+  }
+}
+
+/**
+ * Creates a calendar with the given name and color
+ * @param {calendar_v3.Calendar} calendar 
+ * @param {string} name 
+ * @param {string} color 
+ */
+export async function createCalendar(calendar, name, color) {
+  if (!name.includes("Bad Apple")) throw new Error(`Name must contain "Bad Apple". Received "${name}" instead.`);
+
+  let foregroundColor = color;
+  if (foregroundColor !== "#000000" && foregroundColor !== "#ffffff") {
+    foregroundColor = "#ffffff";
+  }
+
+  const calendarListResponse = await calendar.calendarList.list();
+  const oldCalendars = calendarListResponse.data.items.filter(a => a.summary === name);
+  if (oldCalendars.length >= 1) {
+    await clearCalendar(calendar, oldCalendars[0].id);
+    return oldCalendars[0].id;
+  }
+
+  const newCalendar = { summary: name };
+  const response = await calendar.calendars.insert({ requestBody: newCalendar });
+  const calendarID = response.data.id;
+  const calendarListEntry = {
+    backgroundColor: color,
+    foregroundColor,
+    id: calendarID
+  }
+
+  const calendarCreateResponse = await calendar.calendarList.insert({ colorRgbFormat: true, requestBody: calendarListEntry })
+  return calendarCreateResponse.data.id;
 }
 
 /**
@@ -133,4 +142,36 @@ export async function writeBlock(calendar, BLACK_ID, WHITE_ID, { start, end, ord
     resource: event
   });
   return res;
+}
+
+/**
+ * 
+ * @param {calendar_v3.Calendar} calendar 
+ * @param {Block[]} eventQueue 
+ * @param {string} BLACK_CALENDAR_ID 
+ * @param {string} WHITE_CALENDAR_ID 
+ */
+export async function uploadEvents(calendar, eventQueue, BLACK_CALENDAR_ID, WHITE_CALENDAR_ID) {
+  let total = 0;
+  let currentFrame = 0;
+  console.log(`Estimated duration is ${eventQueue.length * process.env.MIN_DELAY * 0.001}s`);
+
+  while (eventQueue.length != 0) {
+    /** @type {Block} */
+    const newEvent = eventQueue.shift();
+    await backoff(writeBlock(calendar, BLACK_CALENDAR_ID, WHITE_CALENDAR_ID, newEvent)).then(
+      () => { total++; },
+      err => {
+        eventQueue.push(newEvent);
+        console.error(err);
+        console.error(`Failed to write block ${JSON.stringify(newEvent)}`);
+      }
+    );
+
+    currentFrame = Math.floor(newEvent.day / 7);
+    const nextFrame = eventQueue.length === 0 ? null : Math.floor(eventQueue[0].day / 7);
+    if (nextFrame === null || nextFrame === currentFrame + 1) {
+      console.log(`Completed ${currentFrame - start + 1}/${end - start} frames`);
+    }
+  }
 }
