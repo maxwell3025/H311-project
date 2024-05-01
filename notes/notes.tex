@@ -45,7 +45,15 @@ optimized: 91
 
 FULL TEXT:
 unoptimized: 226724
-optimized: 223981
+optimized(aligned order): 223981
+optimized(unaligned order): 223046
+optimized(recursive): 223046
+
+USING OLD SETTINGS
+Original: ~2160000
+v-block optimized: 80000
+recurrence and L-Block: 64294
+*noticeably slower
 
 TODO add an option to not line up the order in halfLBlockOptimizer so that recurrence optimization doesn't have a stroke trying to optimize really deep events.
 

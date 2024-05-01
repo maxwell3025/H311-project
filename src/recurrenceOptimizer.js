@@ -52,14 +52,18 @@ export class ArithmeticSequence {
         this.repeats = repeats;
     }
 
+    contains(value) {
+        const meetsThreshold = (value >= this.start) && (value <= this.start + this.gaps * this.repeats);
+    }
+
     toString() {
-        return `${this.start},${this.gaps},${this.repeats}`
+        return `[${this.start},${this.gaps},${this.repeats}]`
     }
 
     prettyPrint() {
         const stringList = [];
         let currentNumber = this.start;
-        for(let i = 0; i < this.repeats; i++){
+        for (let i = 0; i < this.repeats; i++) {
             stringList.push(currentNumber.toString().padStart(4, "0"));
             currentNumber += this.gaps;
         }
@@ -114,6 +118,111 @@ export function intoSubSequencesGreedy(arr) {
 }
 
 /**
+ * Finds an efficient partition of `arr` into arithmetic sequences.
+ * @param {number[]} arr an array of numbers **sorted in ascending order**
+ * @returns {ArithmeticSequence[]}
+ */
+export function intoSubSequencesGreedyLargestFirst(arr) {
+    /** @type { number[] } */
+    const invArr = [];
+    arr.forEach((value, index) => {
+        invArr[value] = index;
+    })
+
+    /** @type { ArithmeticSequence[] } */
+    const allPossibleSequences = [];
+    for (let i = 0; i < arr.length; i++) {
+        for (let j = i + 1; j < arr.length; j++) {
+            const startPos = arr[i];
+            const gap = arr[j] - arr[i];
+            let sequenceSize = 1;
+            while (invArr[startPos + gap * (sequenceSize - 1)] !== undefined) {
+                allPossibleSequences.push(new ArithmeticSequence(
+                    startPos,
+                    gap,
+                    sequenceSize,
+                ));
+                sequenceSize++;
+            }
+        }
+    }
+
+    const allPossibleSequencesSorted = allPossibleSequences.toSorted((a, b) => b.repeats - a.repeats);
+    /**
+     * This is a description of how the sequences are currently laid out.
+     * @member {number} prev The previous number in the sequence, not the index
+     * @member {number} next The next number in the sequence, not the index
+     * @type {{
+     *  prev?: number,
+     *  next?: number
+     * }[]}
+     */
+    const connectionDescriptions = []
+    /**
+     * Debugging only
+     */
+    function logConnections(){
+        for(const value in connectionDescriptions){
+                console.debug(`${connectionDescriptions[value].prev}->${value}->${connectionDescriptions[value].next}`);
+        }
+    }
+    arr.forEach(value => {
+        connectionDescriptions[value] = {};
+    });
+
+    allPossibleSequencesSorted.forEach(sequence => {
+        let cost = 1; // Add current bar
+        for (let i = 0; i < sequence.repeats; i++) {
+            const currentValue = sequence.start + sequence.gaps * i;
+            const currentConnection = connectionDescriptions[currentValue];
+            cost--; // Remove intersecting bar;
+            if (currentConnection.prev !== undefined && !sequence.contains(currentConnection.prev)) {
+                cost++;
+            }
+            if (currentConnection.next !== undefined) {
+                cost++;
+            }
+        }
+        if (cost < 0) { // Inclusive since smaller sequences are better in general
+            for (let i = 0; i < sequence.repeats; i++) {
+                const currentValue = sequence.start + sequence.gaps * i;
+                const currentConnection = connectionDescriptions[currentValue];
+                if (currentConnection.prev !== undefined)
+                    delete connectionDescriptions[currentConnection.prev].next;
+                delete currentConnection.prev;
+                if (currentConnection.next !== undefined)
+                    delete connectionDescriptions[currentConnection.next].prev;
+                    delete currentConnection.next;
+                if (i !== 0)
+                    currentConnection.prev = currentValue - sequence.gaps;
+                if (i !== sequence.repeats - 1)
+                    currentConnection.next = currentValue + sequence.gaps;
+            }
+        }
+    });
+
+    const output = [];
+    arr.forEach(value => {
+        if (connectionDescriptions[value].prev === undefined) {
+            const sequenceStart = value;
+            const gapSize = connectionDescriptions[value] ? connectionDescriptions[value].next - value : 1;
+            let sequenceSize = 0;
+            let sequenceHead = value;
+            while(sequenceHead !== undefined){
+                sequenceSize++;
+                sequenceHead = connectionDescriptions[sequenceHead].next;
+            }
+            output.push(new ArithmeticSequence(
+                sequenceStart,
+                gapSize,
+                sequenceSize,
+            ))
+        }
+    });
+    return output;
+}
+
+/**
  * @param {ArithmeticSequence} a 
  * @param {ArithmeticSequence} b 
  */
@@ -156,14 +265,14 @@ export function mergeSequences(a, b) {
             2
         );
     }
-    if(a.repeats === 1){
+    if (a.repeats === 1) {
         return new ArithmeticSequence(
             a.start,
             b.gaps,
             b.repeats + 1
         );
     }
-    if(b.repeats === 1){
+    if (b.repeats === 1) {
         return new ArithmeticSequence(
             a.start,
             a.gaps,
@@ -239,19 +348,19 @@ export function mutateSimple(initial) {
 export function annealSubsequence(partition, mutationFunction) {
     let temperature = 0.5;
     let min = 100;
-    function singleStep(initial){
+    function singleStep(initial) {
         const newCandidate = mutationFunction(initial);
         const diffEnergy = newCandidate.length - initial.length;
         const acceptanceProbability = Math.exp(-diffEnergy / temperature)
-        if(Math.random() < acceptanceProbability) return newCandidate;
+        if (Math.random() < acceptanceProbability) return newCandidate;
         else return initial;
     }
-    for(let i = 0; i < 100000; i++){
+    for (let i = 0; i < 100000; i++) {
         // temperature -= 0.01;
         partition = singleStep(partition);
         // console.log(temperature);
         console.log(partition.length);
-        if(min > partition.length) min = partition.length;
+        if (min > partition.length) min = partition.length;
         // partition.forEach(sequence => {
         //     console.log(sequence.prettyPrint());
         // })

@@ -41,7 +41,7 @@ function rowsEqual(a, b) {
     return a.length === b.length && a.every((a_i, i) => b[i] === a_i)
 }
 
-const MAX_FLIPS = 0;
+const MAX_FLIPS = 1;
 
 /**
  * @param {boolean[][]} matrix 
@@ -114,12 +114,12 @@ export function halfLBlockOptimizer(matrix, day, headerIndex) {
 
     // Render the right-side sub-section
     const subBlock = matrix.slice(headerIndex + 3, extent).map(row => row.slice(width / 2));
-    const childRender = buildCalendarColumn(subBlock, day);
+    const childRender = buildCalendarColumnLOptimized(subBlock, day);
     const childRenderWidth = Math.max(...childRender.map(block => block.order)) + 1;
     const childRenderShifted = childRender.map(block => new Block(
         block.start + headerIndex + 3,
         block.end + headerIndex + 3,
-        block.order + childRenderWidth + 2,
+        block.order,
         block.color,
         block.day,
     ));

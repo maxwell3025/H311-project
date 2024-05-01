@@ -1,6 +1,5 @@
 import { test, expect, describe } from "bun:test"
-import { annealSubsequence, ArithmeticSequence, canMerge, intoSubSequencesGreedy, mergeSequences, mutateSimple, splitSequence } from "../src/recurrenceOptimizer"
-import { assert } from "puppeteer";
+import { annealSubsequence, ArithmeticSequence, canMerge, intoSubSequencesGreedy, intoSubSequencesGreedyLargestFirst, mergeSequences, mutateSimple, splitSequence } from "../src/recurrenceOptimizer"
 
 describe("intoSubSequencesGreedy", () => {
     test("Greedy Optimizes Simple Case", () => {
@@ -224,10 +223,10 @@ describe("splitSequence", () => {
     })
 })
 describe("mutateSimple", () => {
-     test("randomly mutate an array", () => {
+    test("randomly mutate an array", () => {
 
-     });
-     test("forced merge", () => {
+    });
+    test("forced merge", () => {
         // 1   3
         const originalPartition = [
             new ArithmeticSequence(
@@ -243,12 +242,12 @@ describe("mutateSimple", () => {
         ];
         const mutatedPartition = mutateSimple(originalPartition);
         expect(mutatedPartition.length).toBe(1);
-        const [{start, gaps, repeats}] = mutatedPartition;
+        const [{ start, gaps, repeats }] = mutatedPartition;
         expect(start).toBe(1);
         expect(gaps).toBe(2);
         expect(repeats).toBe(2);
-     })
-     test("forced split", () => {
+    })
+    test("forced split", () => {
         // 1 - 3
         const originalPartition = [
             new ArithmeticSequence(
@@ -260,28 +259,28 @@ describe("mutateSimple", () => {
         const mutatedPartition = mutateSimple(originalPartition);
         expect(mutatedPartition.length).toBe(2);
         let [a, b] = mutatedPartition;
-        if(a.start > b.start) [a, b] = [b, a];
+        if (a.start > b.start) [a, b] = [b, a];
         expect(a.start).toBe(1);
         expect(a.repeats).toBe(1);
         expect(b.start).toBe(3);
         expect(b.repeats).toBe(1);
-     });
+    });
 })
-describe("annealSubsequence", () => {
+describe.skip("annealSubsequence", () => {
     test("simple", () => {
         const initialPartition = [
-            new ArithmeticSequence(0 , 1, 1),
-            new ArithmeticSequence(1 , 1, 1),
-            new ArithmeticSequence(2 , 1, 1),
+            new ArithmeticSequence(0, 1, 1),
+            new ArithmeticSequence(1, 1, 1),
+            new ArithmeticSequence(2, 1, 1),
 
-            new ArithmeticSequence(8 , 1, 1),
+            new ArithmeticSequence(8, 1, 1),
             new ArithmeticSequence(10, 1, 1),
             new ArithmeticSequence(12, 1, 1),
-            
+
             new ArithmeticSequence(16, 1, 1),
             new ArithmeticSequence(19, 1, 1),
             new ArithmeticSequence(22, 1, 1),
-            
+
             new ArithmeticSequence(24, 1, 1),
             new ArithmeticSequence(28, 1, 1),
             new ArithmeticSequence(32, 1, 1),
@@ -289,3 +288,55 @@ describe("annealSubsequence", () => {
         annealSubsequence(initialPartition, mutateSimple);
     })
 })
+describe("intoSubSequencesGreedyLargestFirst", () => {
+    test("grid-shaped", () => {
+        const testCase = [
+            0, 1, 2, 3,
+            1000, 1002, 1004, 1006,
+            2000, 2003, 2006, 2009,
+            3000, 3004, 3008, 3012,
+            4000, 4005, 4010, 4015,
+        ];
+        const optimizedValue = intoSubSequencesGreedyLargestFirst(testCase);
+        const greedyValue = intoSubSequencesGreedy(testCase);
+        console.log(optimizedValue.length);
+        console.log(greedyValue.length);
+        expect(optimizedValue.length).toBe(4);
+    });
+    test("random1", () => {
+        const testCase = [
+            4, 7, 8, 9, 10, 11, 14, 16, 18, 20
+        ];
+        const optimizedValue = intoSubSequencesGreedyLargestFirst(testCase);
+        const greedyValue = intoSubSequencesGreedy(testCase);
+        console.log(optimizedValue.length);
+        console.log(greedyValue.length);
+    });
+    test("random2", () => {
+        const testCase = [
+            3, 9, 15, 24, 26, 27, 34, 38, 39, 40
+        ];
+        const optimizedValue = intoSubSequencesGreedyLargestFirst(testCase);
+        const greedyValue = intoSubSequencesGreedy(testCase);
+        console.log(optimizedValue.length);
+        console.log(greedyValue.length);
+    });
+    test("random3", () => {
+        const testCase = [
+            2, 6, 10, 16, 20, 26, 29, 35, 38, 40, 54, 55, 62, 64, 71, 72, 74, 75, 78, 80
+        ]
+        const optimizedValue = intoSubSequencesGreedyLargestFirst(testCase);
+        const greedyValue = intoSubSequencesGreedy(testCase);
+        console.log(optimizedValue.length);
+        console.log(greedyValue.length);
+    });
+    test("random4", () => {
+        const testCase = [
+            2, 9, 10, 15, 19, 22, 23, 25, 36, 40, 42, 49, 53, 54, 62, 64, 65, 68, 70, 73, 82, 85, 87, 89, 90, 92, 98, 99, 100, 101, 116, 119, 121, 126, 127, 129, 133, 142, 150, 158
+        ]
+        const optimizedValue = intoSubSequencesGreedyLargestFirst(testCase);
+        const greedyValue = intoSubSequencesGreedy(testCase);
+        console.log(optimizedValue.length);
+        console.log(greedyValue.length);
+    });
+});

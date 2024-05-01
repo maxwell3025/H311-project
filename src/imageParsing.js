@@ -29,7 +29,7 @@ export async function parseImages(directory, startWeek, endWeek) {
         const matrixBeforeResize = png2PixelMatrix(directory + '/' + fileName);
         const matrixAfterResize = resizePixelMatrix(matrixBeforeResize, process.env.WIDTH, process.env.HEIGHT);
         const days = SeparateTo7Days(matrixAfterResize, parseInt(process.env.WIDTH), parseInt(process.env.HEIGHT))
-        const blocks = days.map((day, index) => buildCalendarColumn(day, index + weekNumber * 7))
+        const blocks = days.map((day, index) => buildCalendarColumnLOptimized(day, index + weekNumber * 7))
         eventQueue.push(...blocks.flat())
     }
     eventQueue = optimizeRecurrences(eventQueue);

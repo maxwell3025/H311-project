@@ -27,9 +27,11 @@ const eventQueue = await parseImages("./" + process.env.FRAME_DIRECTORY, start, 
 
 console.log(`Drawing weeks ${start} - ${end}`);
 console.log(`${eventQueue.length} Requests needed`);
-const confirmationText = parseInt((await rl.question("confirm rendering(yes/no)? ")));
+const confirmationText = await rl.question("confirm rendering(yes/no)? ");
 rl.close();
-if(confirmationText !== "yes") process.exit(0);
+if(confirmationText !== "yes") {
+  process.exit(0);
+}
 
 
 await uploadEvents(calendar, eventQueue, BLACK_CALENDAR_ID, WHITE_CALENDAR_ID);
