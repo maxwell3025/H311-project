@@ -24,7 +24,7 @@ export function optimizeRecurrences(eventList) {
 export function optimizeEventClass(eventList) {
     const sortedEvents = eventList.toSorted((lhs, rhs) => (lhs.day - rhs.day));
     const dayArray = sortedEvents.map(event => event.day);
-    const sequenceList = intoSubSequencesGreedy(dayArray);
+    const sequenceList = intoSubSequencesGreedyLargestFirst(dayArray);
     const representative = sortedEvents[0];
     return sequenceList.map(sequence => new Block(
         representative.start,
